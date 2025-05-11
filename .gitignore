@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode settings
+.vscode/
+
+# Optional: ignore production builds or temp files if any
+dist/
+build/
+tmp/
+*.tmp
+
+# Ignore Supabase session info if generated locally
+supabase/.output/
+
+# Coverage reports
+coverage/
+
+# Ignore lock files if you don't want to commit them (optional)
+# package-lock.json
+# yarn.lock
