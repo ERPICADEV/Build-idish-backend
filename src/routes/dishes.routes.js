@@ -16,9 +16,9 @@ const router = express.Router()
 
 router.post('/add', requireChef, addDish)
 router.get('/by-chef', requireChef, getChefDishes)
+router.get('/all', getAllAvailableDishes)
 router.get('/:id', requireAuth, getDishById)
 router.put('/edit/:id', requireChef, updateDishById)
 router.delete('/delete/:id', requireChef, deleteDishById)
-router.get('/all', requireAuth, getAllAvailableDishes)
 
 export default router
