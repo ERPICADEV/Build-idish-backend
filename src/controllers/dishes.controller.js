@@ -1,3 +1,4 @@
+// src/controllers/dishes.controller.js
 import supabase from '../services/supabaseClient.js'
 
 export const addDish = async (req, res) => {
@@ -246,4 +247,3 @@ export const searchDishes = async (req, res) => {
 
   res.status(200).json({ dishes: data || [] })
 }
-

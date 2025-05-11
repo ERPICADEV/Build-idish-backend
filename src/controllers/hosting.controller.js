@@ -1,3 +1,4 @@
+// src/controllers/hosting.controller.js
 import supabase from '../services/supabaseClient.js'
 
 // Create new hosting availability

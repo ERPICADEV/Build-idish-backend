@@ -1,3 +1,4 @@
+// src/controllers/orders.controller.js
 import supabase from '../services/supabaseClient.js'
 
 // Place a new order
