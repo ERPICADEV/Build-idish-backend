@@ -7,6 +7,6 @@ const router = express.Router()
 
 router.post('/create', requireChef, createHosting)
 router.get('/by-chef', requireChef, getHostingByChef)
-router.get('/all', requireAuth, getAllHostings)
+router.get('/all', getAllHostings)
 
 export default router
