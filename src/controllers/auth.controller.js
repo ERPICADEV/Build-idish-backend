@@ -108,3 +108,74 @@ export const getProfile = async (req, res) => {
     last_sign_in_at: user.last_sign_in_at
   })
 }
+
+// Get user by ID controller
+export const getUserById = async (req, res) => {
+  const { id } = req.params;
+
+  // First, get the user's basic info from auth
+  const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(id);
+
+  if (userError || !user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const role = user.user_metadata?.role || 'customer';
+
+  // If the user is a chef, fetch extended profile from chefs table
+  if (role === 'chef') {
+    const { data: chefProfile, error: profileError } = await supabase
+      .from('chefs')
+      .select('name, phone, location, about, experience, image_url')
+      .eq('id', id)
+      .single();
+
+    if (profileError || !chefProfile) {
+      return res.status(404).json({ error: 'Chef profile not found' });
+    }
+
+    // Return combined user and chef profile data
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        user_metadata: {
+          role: 'chef',
+          ...chefProfile
+        }
+      }
+    });
+  }
+
+  // If customer, return basic user info
+  return res.status(200).json({
+    user: {
+      id: user.id,
+      email: user.email,
+      user_metadata: {
+        role: 'customer'
+      }
+    }
+  });
+};
+
+// Get chef profile by ID
+export const getChefProfile = async (req, res) => {
+  const { id } = req.params;
+
+  // Fetch chef profile from chefs table
+  const { data: chefProfile, error: profileError } = await supabase
+    .from('chefs')
+    .select('name, phone, location, about, experience, image_url')
+    .eq('id', id)
+    .single();
+
+  if (profileError || !chefProfile) {
+    return res.status(404).json({ error: 'Chef profile not found' });
+  }
+
+  return res.status(200).json({
+    id,
+    ...chefProfile
+  });
+};
