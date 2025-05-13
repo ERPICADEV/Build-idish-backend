@@ -111,29 +111,43 @@ export const getProfile = async (req, res) => {
 
 // Get user by ID controller
 export const getUserById = async (req, res) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
+    console.log('Fetching user profile for ID:', id);
 
-  // Fetch chef profile from chefs table
-  const { data: chefProfile, error: profileError } = await supabase
-    .from('chefs')
-    .select('name, phone, location, about, experience, image_url')
-    .eq('id', id)
-    .single();
+    // Fetch chef profile from chefs table
+    const { data: chefProfile, error: profileError } = await supabase
+      .from('chefs')
+      .select('name, phone, location, about, experience, image_url')
+      .eq('id', id)
+      .single();
 
-  if (profileError || !chefProfile) {
-    return res.status(404).json({ error: 'Chef profile not found' });
-  }
-
-  // Return the chef profile in the expected format
-  return res.status(200).json({
-    user: {
-      id: id,
-      user_metadata: {
-        role: 'chef',
-        ...chefProfile
-      }
+    if (profileError) {
+      console.error('Error fetching chef profile:', profileError);
+      return res.status(404).json({ error: 'Chef profile not found', details: profileError.message });
     }
-  });
+
+    if (!chefProfile) {
+      console.log('No chef profile found for ID:', id);
+      return res.status(404).json({ error: 'Chef profile not found' });
+    }
+
+    console.log('Successfully found chef profile:', chefProfile);
+
+    // Return the chef profile in the expected format
+    return res.status(200).json({
+      user: {
+        id: id,
+        user_metadata: {
+          role: 'chef',
+          ...chefProfile
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Unexpected error in getUserById:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
 };
 
 // Get chef profile by ID
