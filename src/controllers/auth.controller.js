@@ -94,18 +94,22 @@ export const getProfile = async (req, res) => {
     }
 
     return res.status(200).json({
-      role: 'chef',
       email: user.email,
-      ...chefProfile
+      user_metadata: {
+        role: 'chef',
+        ...chefProfile
+      }
     })
   }
 
   // 👤 If customer (just return Auth metadata)
   return res.status(200).json({
-    role: 'customer',
     email: user.email,
-    created_at: user.created_at,
-    last_sign_in_at: user.last_sign_in_at
+    user_metadata: {
+      role: 'customer',
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at
+    }
   })
 }
 
