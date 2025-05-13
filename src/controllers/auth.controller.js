@@ -72,11 +72,39 @@ export const getProfile = async (req, res) => {
   }
 
   const token = authHeader.split(' ')[1]
-  const { data: { user }, error } = await supabase.auth.getUser(token)
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
-  if (error || !user) {
+  if (userError || !user) {
     return res.status(401).json({ error: 'Invalid token' })
   }
 
-  res.status(200).json({ user })
+  const userId = user.id
+  const role = user.user_metadata?.role || 'customer' // fallback to 'customer'
+
+  // 👨‍🍳 If the user is a chef, fetch extended profile from chefs table
+  if (role === 'chef') {
+    const { data: chefProfile, error: profileError } = await supabase
+      .from('chefs')
+      .select('name, phone, location, about, experience, image_url')
+      .eq('id', userId)
+      .single()
+
+    if (profileError || !chefProfile) {
+      return res.status(404).json({ error: 'Chef profile not found' })
+    }
+
+    return res.status(200).json({
+      role: 'chef',
+      email: user.email,
+      ...chefProfile
+    })
+  }
+
+  // 👤 If customer (just return Auth metadata)
+  return res.status(200).json({
+    role: 'customer',
+    email: user.email,
+    created_at: user.created_at,
+    last_sign_in_at: user.last_sign_in_at
+  })
 }
