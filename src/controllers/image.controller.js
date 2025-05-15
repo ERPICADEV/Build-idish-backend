@@ -3,12 +3,23 @@ import supabase from '../services/supabaseClient.js';
 import fs from 'fs';
 import { promises as fsPromises } from 'fs';
 
+// Define allowed buckets
+const ALLOWED_BUCKETS = ['chefs', 'dishes', 'hostings'];
+
 export const uploadImage = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file uploaded.' });
   }
 
-  const bucketName = req.body.bucket || 'chefs'; // e.g. chefs, dishes, hostings
+  // Validate bucket name
+  const requestedBucket = req.body.bucket;
+  if (!requestedBucket || !ALLOWED_BUCKETS.includes(requestedBucket)) {
+    return res.status(400).json({ 
+      error: 'Invalid or missing bucket name. Allowed buckets are: chefs, dishes, hostings' 
+    });
+  }
+
+  const bucketName = requestedBucket;
   const { record_id, table } = req.body; // optional: if provided, update record in table with image_url
 
   const file = req.file;
