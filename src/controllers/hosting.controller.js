@@ -10,7 +10,8 @@ export const createHosting = async (req, res) => {
     available_days,
     time_slots,
     max_guests,
-    price_per_guest
+    price_per_guest,
+    image_url
   } = req.body
 
   if (!title || !location || !max_guests || !price_per_guest) {
@@ -27,7 +28,8 @@ export const createHosting = async (req, res) => {
       available_days,
       time_slots,
       max_guests,
-      price_per_guest
+      price_per_guest,
+      image_url
     }])
     .select()
 
@@ -117,7 +119,8 @@ export const updateHosting = async (req, res) => {
     available_days,
     time_slots,
     max_guests,
-    price_per_guest
+    price_per_guest,
+    image_url
   } = req.body
 
   if (!title || !location || !max_guests || !price_per_guest) {
@@ -146,6 +149,7 @@ export const updateHosting = async (req, res) => {
         time_slots,
         max_guests,
         price_per_guest,
+        image_url,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
