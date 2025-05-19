@@ -1,4 +1,5 @@
 import supabase from '../services/supabaseClient.js'
+import supabaseAdmin from '../services/supabaseAdminClient.js'
 
 // Signup controller
 export const signupUser = async (req, res) => {
@@ -28,6 +29,40 @@ export const signupUser = async (req, res) => {
 
   // If the user is a chef, insert into `chefs` table
   if (role === 'chef') {
+    let imageUrl = '';
+    
+    // If there's a profile image, upload it to Supabase storage using admin client
+    if (profile.profile_image) {
+      try {
+        // Convert base64 to buffer
+        const base64Data = profile.profile_image.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Generate a unique filename
+        const fileName = `${user.id}-${Date.now()}.png`;
+        
+        // Upload to Supabase storage using admin client
+        const { data, error } = await supabaseAdmin.storage
+          .from('chefs')
+          .upload(fileName, buffer, {
+            contentType: 'image/png',
+            upsert: true
+          });
+          
+        if (error) {
+          console.error('Error uploading image:', error);
+        } else {
+          // Get the public URL using admin client
+          const { data: { publicUrl } } = supabaseAdmin.storage
+            .from('chefs')
+            .getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        }
+      } catch (err) {
+        console.error('Error processing image:', err);
+      }
+    }
+
     const chefDetails = {
       id: user.id,
       name: profile.name,
@@ -35,7 +70,7 @@ export const signupUser = async (req, res) => {
       location: profile.location,
       about: profile.about,
       experience: profile.experience,
-      image_url: profile.image_url
+      image_url: imageUrl
     }
 
     const { error: insertError } = await supabase.from('chefs').insert([chefDetails])
