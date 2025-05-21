@@ -69,45 +69,6 @@ export const getAllHostings = async (_req, res) => {
   res.status(200).json({ hostings: data || [] })
 }
 
-// Book a hosting
-export const bookHosting = async (req, res) => {
-  const user = req.user
-  const { id } = req.params // hosting_id
-  const { seats } = req.body
-
-  if (!seats || seats <= 0) {
-    return res.status(400).json({ error: 'Number of seats must be greater than 0' })
-  }
-
-  // Confirm the hosting exists
-  const { data: hosting, error: hostingError } = await supabase
-    .from('hosting')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (hostingError || !hosting) {
-    return res.status(404).json({ error: 'Hosting not found' })
-  }
-
-  const { data: booking, error: bookingError } = await supabase
-    .from('bookings')
-    .insert([
-      {
-        customer_id: user.id,
-        hosting_id: id,
-        seats
-      }
-    ])
-    .select()
-
-  if (bookingError) {
-    return res.status(500).json({ error: bookingError.message })
-  }
-
-  res.status(201).json({ message: 'Booking successful', booking: booking[0] })
-}
-
 // Update a hosting
 export const updateHosting = async (req, res) => {
   const user = req.user
@@ -195,5 +156,121 @@ export const getHostingById = async (req, res) => {
   } catch (error) {
     console.error('Unexpected error:', error)
     res.status(500).json({ error: 'An unexpected error occurred' })
+  }
+}
+
+// Delete a hosting by ID
+export const deleteHostingById = async (req, res) => {
+  const user = req.user
+  const { id } = req.params
+
+  try {
+    // Start a transaction
+    const { data: hosting, error: fetchError } = await supabase
+      .from('hosting')
+      .select('*')
+      .eq('id', id)
+      .eq('chef_id', user.id)
+      .single()
+
+    if (fetchError) {
+      console.error('Error fetching hosting:', fetchError)
+      // Check if the error is due to no rows found
+      if (fetchError.code === 'PGRST116') {
+        return res.status(404).json({ 
+          error: 'Hosting not found',
+          message: 'The hosting you are trying to delete does not exist'
+        })
+      }
+      return res.status(500).json({ 
+        error: 'Failed to fetch hosting details',
+        message: 'There was an error while trying to fetch the hosting details'
+      })
+    }
+
+    if (!hosting) {
+      return res.status(404).json({ 
+        error: 'Hosting not found',
+        message: 'The hosting you are trying to delete does not exist or you do not have permission to delete it'
+      })
+    }
+
+    // Check for existing bookings
+    const { data: existingBookings, error: bookingCheckError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('hosting_id', id)
+      .limit(1)
+
+    if (bookingCheckError) {
+      console.error('Error checking bookings:', bookingCheckError)
+      return res.status(500).json({ error: 'Failed to check related bookings' })
+    }
+
+    if (existingBookings && existingBookings.length > 0) {
+      return res.status(400).json({ 
+        error: 'Cannot delete hosting with existing bookings',
+        message: 'Please cancel or complete all bookings before deleting this hosting'
+      })
+    }
+
+    // Delete the hosting image if it exists
+    if (hosting.image_url) {
+      try {
+        const imagePath = hosting.image_url.split('/').pop()
+        const { error: deleteImageError } = await supabase
+          .storage
+          .from('hostings')
+          .remove([imagePath])
+
+        if (deleteImageError) {
+          console.error('Error deleting hosting image:', deleteImageError)
+          // Continue with deletion even if image deletion fails
+        }
+      } catch (imageError) {
+        console.error('Error in image deletion process:', imageError)
+        // Continue with deletion even if image deletion fails
+      }
+    }
+
+    // Delete the hosting record
+    const { error: deleteError } = await supabase
+      .from('hosting')
+      .delete()
+      .eq('id', id)
+      .eq('chef_id', user.id)
+
+    if (deleteError) {
+      // Check for foreign key constraint error
+      if (
+        deleteError.message &&
+        deleteError.message.toLowerCase().includes('foreign key constraint')
+      ) {
+        return res.status(400).json({
+          error: 'Cannot delete hosting with existing bookings',
+          message: 'Please cancel or remove all bookings before deleting this hosting.'
+        })
+      }
+      // Other errors
+      console.error('Error deleting hosting:', deleteError)
+      return res.status(500).json({ 
+        error: 'Failed to delete hosting',
+        details: deleteError.message
+      })
+    }
+
+    res.status(200).json({ 
+      message: 'Hosting deleted successfully',
+      deletedHosting: {
+        id: hosting.id,
+        title: hosting.title
+      }
+    })
+  } catch (error) {
+    console.error('Unexpected error in deleteHostingById:', error)
+    res.status(500).json({ 
+      error: 'An unexpected error occurred while deleting the hosting',
+      details: error.message
+    })
   }
 }
