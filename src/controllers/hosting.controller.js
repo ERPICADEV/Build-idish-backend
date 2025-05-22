@@ -142,7 +142,7 @@ export const getHostingById = async (req, res) => {
         chefs:chef_id (
           id,
           name,
-          profile_picture
+          image_url
         )
       `)
       .eq('id', id)
@@ -154,7 +154,6 @@ export const getHostingById = async (req, res) => {
 
     res.status(200).json({ hosting: data })
   } catch (error) {
-    console.error('Unexpected error:', error)
     res.status(500).json({ error: 'An unexpected error occurred' })
   }
 }
