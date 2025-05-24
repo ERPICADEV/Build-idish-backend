@@ -8,8 +8,8 @@ export const createBooking = async (req, res) => {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error) return res.status(401).json({ error: 'Invalid token' })
 
-  const { hosting_id, date, time_slot, number_of_guests, special_requests } = req.body
-  if (!hosting_id || !date || !time_slot || !number_of_guests) {
+  const { hosting_id, booking_date, time_slot, seats, special_requests } = req.body
+  if (!hosting_id || !booking_date || !time_slot || !seats) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
@@ -21,14 +21,14 @@ export const createBooking = async (req, res) => {
     .from('bookings')
     .select('*')
     .eq('hosting_id', hosting_id)
-    .eq('date', date)
+    .eq('date', booking_date)
     .eq('time_slot', time_slot)
 
   if (existingBookings && existingBookings.length > 0) {
     return res.status(400).json({ error: 'This time slot is already booked' })
   }
 
-  const total_price = Math.round(hosting.price_per_guest * number_of_guests)
+  const total_price = hosting.price_per_guest * seats
 
   const { data, error: bookingError } = await supabase
     .from('bookings')
@@ -36,9 +36,9 @@ export const createBooking = async (req, res) => {
       customer_id: user.id,
       chef_id: hosting.chef_id,
       hosting_id,
-      date,
+      date: booking_date,
       time_slot,
-      number_of_guests,
+      number_of_guests: seats,
       total_price,
       special_requests,
       status: 'pending'
@@ -68,8 +68,18 @@ export const getBookingsByUser = async (req, res) => {
   let query = supabase
     .from('bookings')
     .select(`
-      *,
-      hosting:hosting_id (title, location, image_url)
+      id,
+      customer_id,
+      chef_id,
+      hosting_id,
+      number_of_guests,
+      total_price,
+      status,
+      date,
+      time_slot,
+      created_at,
+      updated_at,
+      hosting:hosting_id(title, location, image_url)
     `)
     .eq('customer_id', user.id)
     .order('created_at', { ascending: false })
@@ -94,7 +104,20 @@ export const getBookingsByChef = async (req, res) => {
 
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, hosting:hosting_id(title), customer_id')
+    .select(`
+      id,
+      customer_id,
+      chef_id,
+      hosting_id,
+      number_of_guests,
+      total_price,
+      status,
+      date,
+      time_slot,
+      created_at,
+      updated_at,
+      hosting:hosting_id(title, location, image_url)
+    `)
     .eq('chef_id', user.id)
 
   if (error) return res.status(500).json({ error: error.message })
