@@ -11,7 +11,8 @@ export const createHosting = async (req, res) => {
     time_slots,
     max_guests,
     price_per_guest,
-    image_url
+    image_url,
+    available = true
   } = req.body
 
   if (!title || !location || !max_guests || !price_per_guest) {
@@ -29,7 +30,8 @@ export const createHosting = async (req, res) => {
       time_slots,
       max_guests,
       price_per_guest,
-      image_url
+      image_url,
+      available
     }])
     .select()
 
@@ -61,6 +63,7 @@ export const getAllHostings = async (_req, res) => {
   const { data, error } = await supabase
     .from('hosting')
     .select('*')
+    .eq('available', true)
 
   if (error) {
     return res.status(500).json({ error: error.message })
@@ -81,7 +84,8 @@ export const updateHosting = async (req, res) => {
     time_slots,
     max_guests,
     price_per_guest,
-    image_url
+    image_url,
+    available
   } = req.body
 
   if (!title || !location || !max_guests || !price_per_guest) {
@@ -111,6 +115,7 @@ export const updateHosting = async (req, res) => {
         max_guests,
         price_per_guest,
         image_url,
+        ...(available !== undefined && { available }),
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
